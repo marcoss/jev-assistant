@@ -195,6 +195,7 @@ function CardView({ card }: { card: AssistantCard }) {
 export default function Home() {
   const [query, setQuery] = useState("");
   const [card, setCard] = useState<AssistantCard | null>(null);
+  const [debug, setDebug] = useState<AssistantResponse["debug"] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [context, setContext] = useState<AssistantContext>({});
@@ -251,6 +252,7 @@ export default function Home() {
 
       const data = (await response.json()) as AssistantResponse;
       setCard(data.card);
+      setDebug(data.debug);
     } catch {
       setError("Could not generate a card. Try again.");
     } finally {
@@ -318,7 +320,21 @@ export default function Home() {
           {!loading && error && (
             <p className="text-center text-danger">{error}</p>
           )}
-          {!loading && card && <CardView card={card} />}
+          {!loading && card && (
+            <>
+              <CardView card={card} />
+              {debug && (
+                <details className="mt-3 rounded-xl border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
+                  <summary className="cursor-pointer font-bold text-foreground">
+                    Debug info
+                  </summary>
+                  <pre className="mt-3 overflow-x-auto whitespace-pre-wrap font-mono">
+                    {JSON.stringify(debug, null, 2)}
+                  </pre>
+                </details>
+              )}
+            </>
+          )}
         </div>
 
         <form

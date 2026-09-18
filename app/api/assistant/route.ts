@@ -73,10 +73,9 @@ async function queryDecisionApi(query: string): Promise<AssistantIntent> {
     return mockDecision(query);
   }
 
-  console.info("[JEV] Sending intent request", {
-    model: "jev-latest",
-    queryLength: query.length,
-  });
+  console.info(
+    `[JEV] Sending intent request model=jev-latest queryLength=${query.length}`,
+  );
 
   const response = await fetch("https://api.typesafe.ai/v1/systemone", {
     method: "POST",
@@ -106,20 +105,20 @@ async function queryDecisionApi(query: string): Promise<AssistantIntent> {
     cache: "no-store",
   });
 
-  console.info("[JEV] Response received", {
-    status: response.status,
-    ok: response.ok,
-  });
+  console.info(
+    `[JEV] Response received status=${response.status} ok=${response.ok}`,
+  );
 
   if (!response.ok) {
-    console.error("[JEV] Request failed", { status: response.status });
+    console.error(`[JEV] Request failed status=${response.status}`);
     throw new Error(`JEV request failed with status ${response.status}.`);
   }
 
   const result = (await response.json()) as JevResponse;
   const choice = result.answers?.assistant_intent?.choice;
 
-  console.info("[JEV] Intent selected", { choice });
+  console.info(`[JEV] Response JSON ${JSON.stringify(result)}`);
+  console.info(`[JEV] Intent selected choice=${String(choice)}`);
 
   switch (choice) {
     case "weather":
@@ -234,6 +233,10 @@ export async function POST(request: Request) {
   const response: AssistantResponse = {
     query,
     card,
+    debug: {
+      intent,
+      cardType: card.type,
+    },
   };
 
   return NextResponse.json(response);

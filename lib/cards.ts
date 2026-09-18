@@ -88,4 +88,8 @@ export type AssistantCard =
 export type AssistantResponse = {
   query: string;
   card: AssistantCard;
+  debug: {
+    intent: AssistantIntent;
+    cardType: AssistantCard["type"];
+  };
 };

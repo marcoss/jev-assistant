@@ -73,6 +73,16 @@ type JevResponse = {
   };
 };
 
+const intentEmoji = {
+  weather: "🌤️",
+  time: "🕐",
+  news: "📰",
+  sports: "🏆",
+  checklist: "✅",
+  info: "💡",
+  unsupported: "🧩",
+} satisfies Record<AssistantIntent["card_type"], string>;
+
 async function queryDecisionApi(query: string): Promise<AssistantIntent> {
   const apiKey = process.env.TYPESAFE_API_KEY;
 
@@ -259,6 +269,7 @@ export async function POST(request: Request) {
     debug: {
       intent,
       cardType: card.type,
+      emoji: intentEmoji[intent.card_type],
     },
   };
 

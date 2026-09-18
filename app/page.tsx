@@ -59,22 +59,36 @@ async function getIpLocation(): Promise<AssistantContext["ipLocation"]> {
   }
 }
 
-function InfoCardView({ card }: { card: InfoCard }) {
+function CardEyebrow({ emoji, label }: { emoji: string; label: string }) {
+  return (
+    <p className={eyebrowClass}>
+      <span aria-hidden="true">{emoji}</span> {label}
+    </p>
+  );
+}
+
+function InfoCardView({ card, emoji }: { card: InfoCard; emoji: string }) {
   return (
     <article className={cardClass}>
-      <p className={eyebrowClass}>{card.eyebrow}</p>
+      <CardEyebrow emoji={emoji} label={card.eyebrow} />
       <h2 className="mb-2.5 text-2xl font-bold tracking-tight">{card.title}</h2>
       <p className={bodyClass}>{card.body}</p>
     </article>
   );
 }
 
-function WeatherCardView({ card }: { card: WeatherCard }) {
+function WeatherCardView({
+  card,
+  emoji,
+}: {
+  card: WeatherCard;
+  emoji: string;
+}) {
   return (
     <article className={cardClass}>
       <div className="flex items-start justify-between gap-5 max-sm:block">
         <div>
-          <p className={eyebrowClass}>Weather</p>
+          <CardEyebrow emoji={emoji} label="Weather" />
           <h2 className="mb-2.5 text-2xl font-bold tracking-tight">
             {card.location}
           </h2>
@@ -103,10 +117,10 @@ function WeatherCardView({ card }: { card: WeatherCard }) {
   );
 }
 
-function TimeCardView({ card }: { card: TimeCard }) {
+function TimeCardView({ card, emoji }: { card: TimeCard; emoji: string }) {
   return (
     <article className={cardClass}>
-      <p className={eyebrowClass}>Local time</p>
+      <CardEyebrow emoji={emoji} label="Local time" />
       <h2 className="mb-2.5 text-2xl font-bold tracking-tight">
         {card.location}
       </h2>
@@ -116,10 +130,10 @@ function TimeCardView({ card }: { card: TimeCard }) {
   );
 }
 
-function NewsCardView({ card }: { card: NewsCard }) {
+function NewsCardView({ card, emoji }: { card: NewsCard; emoji: string }) {
   return (
     <article className={cardClass}>
-      <p className={eyebrowClass}>News</p>
+      <CardEyebrow emoji={emoji} label="News" />
       <h2 className="mb-2.5 text-2xl font-bold tracking-tight">{card.topic}</h2>
       <div className="mt-5 grid gap-4 border-t border-border pt-4">
         {card.articles.map((article) => (
@@ -137,10 +151,10 @@ function NewsCardView({ card }: { card: NewsCard }) {
   );
 }
 
-function SportsCardView({ card }: { card: SportsCard }) {
+function SportsCardView({ card, emoji }: { card: SportsCard; emoji: string }) {
   return (
     <article className={cardClass}>
-      <p className={eyebrowClass}>Sports</p>
+      <CardEyebrow emoji={emoji} label="Sports" />
       <h2 className="mb-2.5 text-2xl font-bold tracking-tight">{card.topic}</h2>
       <div className="mt-5 grid gap-4 border-t border-border pt-4">
         {card.events.map((event) => (
@@ -158,10 +172,16 @@ function SportsCardView({ card }: { card: SportsCard }) {
   );
 }
 
-function ChecklistCardView({ card }: { card: ChecklistCard }) {
+function ChecklistCardView({
+  card,
+  emoji,
+}: {
+  card: ChecklistCard;
+  emoji: string;
+}) {
   return (
     <article className={cardClass}>
-      <p className={eyebrowClass}>Suggested steps</p>
+      <CardEyebrow emoji={emoji} label="Suggested steps" />
       <h2 className="mb-2.5 text-2xl font-bold tracking-tight">{card.title}</h2>
       <ol className="mt-5 grid list-none gap-3.5 p-0">
         {card.items.map((item, index) => (
@@ -177,7 +197,7 @@ function ChecklistCardView({ card }: { card: ChecklistCard }) {
   );
 }
 
-function CustomCardView({ card }: { card: CustomCard }) {
+function CustomCardView({ card, emoji }: { card: CustomCard; emoji: string }) {
   return (
     <article className={`${cardClass} flex items-center gap-4 border-dashed`}>
       <div
@@ -187,7 +207,7 @@ function CustomCardView({ card }: { card: CustomCard }) {
         +
       </div>
       <div>
-        <p className={eyebrowClass}>Custom component needed</p>
+        <CardEyebrow emoji={emoji} label="Custom component needed" />
         <h2 className="mb-2.5 text-lg font-bold tracking-tight">
           {card.message}
         </h2>
@@ -197,22 +217,22 @@ function CustomCardView({ card }: { card: CustomCard }) {
   );
 }
 
-function CardView({ card }: { card: AssistantCard }) {
+function CardView({ card, emoji }: { card: AssistantCard; emoji: string }) {
   switch (card.type) {
     case "weather_card":
-      return <WeatherCardView card={card} />;
+      return <WeatherCardView card={card} emoji={emoji} />;
     case "time_card":
-      return <TimeCardView card={card} />;
+      return <TimeCardView card={card} emoji={emoji} />;
     case "news_card":
-      return <NewsCardView card={card} />;
+      return <NewsCardView card={card} emoji={emoji} />;
     case "sports_card":
-      return <SportsCardView card={card} />;
+      return <SportsCardView card={card} emoji={emoji} />;
     case "checklist_card":
-      return <ChecklistCardView card={card} />;
+      return <ChecklistCardView card={card} emoji={emoji} />;
     case "custom_card":
-      return <CustomCardView card={card} />;
+      return <CustomCardView card={card} emoji={emoji} />;
     case "info_card":
-      return <InfoCardView card={card} />;
+      return <InfoCardView card={card} emoji={emoji} />;
   }
 }
 
@@ -346,7 +366,7 @@ export default function Home() {
           )}
           {!loading && card && (
             <>
-              <CardView card={card} />
+              <CardView card={card} emoji={debug?.emoji ?? "✨"} />
               {debug && (
                 <details className="mt-3 rounded-xl border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
                   <summary className="cursor-pointer font-bold text-foreground">

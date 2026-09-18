@@ -103,5 +103,6 @@ export type AssistantResponse = {
   debug: {
     intent: AssistantIntent;
     cardType: AssistantCard["type"];
+    emoji: string;
   };
 };

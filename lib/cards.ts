@@ -41,6 +41,16 @@ export type ChecklistCard = {
   items: string[];
 };
 
+export type SportsCard = {
+  type: "sports_card";
+  topic: string;
+  events: Array<{
+    title: string;
+    league: string;
+    status: string;
+  }>;
+};
+
 export type CustomCard = {
   type: "custom_card";
   requestedUi: string;
@@ -74,6 +84,7 @@ export type AssistantIntent =
   | { card_type: "time"; location?: string; timezone?: string }
   | { card_type: "news"; topic: string }
   | { card_type: "checklist"; topic: string }
+  | { card_type: "sports"; topic: string }
   | { card_type: "info"; title: string; body: string }
   | { card_type: "unsupported"; requested_ui: string };
 
@@ -83,6 +94,7 @@ export type AssistantCard =
   | TimeCard
   | NewsCard
   | ChecklistCard
+  | SportsCard
   | CustomCard;
 
 export type AssistantResponse = {

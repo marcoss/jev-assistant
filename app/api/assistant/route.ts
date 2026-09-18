@@ -42,6 +42,14 @@ function mockDecision(query: string): AssistantIntent {
     return { card_type: "news", topic: query };
   }
 
+  if (
+    /sports|score|game|match|nba|nfl|mlb|nhl|soccer|football|basketball|baseball|hockey/.test(
+      prompt,
+    )
+  ) {
+    return { card_type: "sports", topic: query };
+  }
+
   if (/plan|steps|checklist|todo/.test(prompt)) {
     return { card_type: "checklist", topic: query };
   }
@@ -95,6 +103,7 @@ async function queryDecisionApi(query: string): Promise<AssistantIntent> {
             weather: "Weather, temperature, conditions, or forecast.",
             time: "Current time, clock, or timezone.",
             news: "News, headlines, or current events.",
+            sports: "Sports, scores, games, matches, teams, or leagues.",
             checklist: "Plan, steps, checklist, or todo list.",
             unsupported: "Chart, map, timer, calendar, or custom visual UI.",
             info: "Any request that does not match another option.",
@@ -127,6 +136,8 @@ async function queryDecisionApi(query: string): Promise<AssistantIntent> {
       return { card_type: "time" };
     case "news":
       return { card_type: "news", topic: query };
+    case "sports":
+      return { card_type: "sports", topic: query };
     case "checklist":
       return { card_type: "checklist", topic: query };
     case "unsupported":
@@ -184,6 +195,18 @@ async function fulfillIntent(
             title: "Placeholder headline",
             source: "Mock news API",
             summary: "External news API not hooked yet.",
+          },
+        ],
+      };
+    case "sports":
+      return {
+        type: "sports_card",
+        topic: intent.topic,
+        events: [
+          {
+            title: "Placeholder matchup",
+            league: "Mock sports API",
+            status: "External sports data API not hooked yet.",
           },
         ],
       };

@@ -10,6 +10,7 @@ import type {
   CustomCard,
   InfoCard,
   NewsCard,
+  SportsCard,
   TimeCard,
   WeatherCard,
 } from "@/lib/cards";
@@ -136,6 +137,27 @@ function NewsCardView({ card }: { card: NewsCard }) {
   );
 }
 
+function SportsCardView({ card }: { card: SportsCard }) {
+  return (
+    <article className={cardClass}>
+      <p className={eyebrowClass}>Sports</p>
+      <h2 className="mb-2.5 text-2xl font-bold tracking-tight">{card.topic}</h2>
+      <div className="mt-5 grid gap-4 border-t border-border pt-4">
+        {card.events.map((event) => (
+          <section
+            className="grid gap-1"
+            key={`${event.league}-${event.title}`}
+          >
+            <p className="text-sm font-bold text-primary">{event.league}</p>
+            <h3 className="font-bold">{event.title}</h3>
+            <p className={bodyClass}>{event.status}</p>
+          </section>
+        ))}
+      </div>
+    </article>
+  );
+}
+
 function ChecklistCardView({ card }: { card: ChecklistCard }) {
   return (
     <article className={cardClass}>
@@ -183,6 +205,8 @@ function CardView({ card }: { card: AssistantCard }) {
       return <TimeCardView card={card} />;
     case "news_card":
       return <NewsCardView card={card} />;
+    case "sports_card":
+      return <SportsCardView card={card} />;
     case "checklist_card":
       return <ChecklistCardView card={card} />;
     case "custom_card":

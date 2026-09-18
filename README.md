@@ -5,31 +5,18 @@ Minimal Next.js proof of concept for a typed generative UI.
 ## Request flow
 
 ```mermaid
-flowchart TD
-    A[App starts] --> B[Collect locale and timezone]
-    A --> C[Request browser location]
-    A --> D[Get coarse IP location]
+flowchart LR
+    Q[Query + context] --> API[/api/assistant]
+    API --> I[Typed intent]
+    I --> F[Fulfill with data APIs]
+    F --> C[Typed card]
+    C --> UI[Card component]
 
-    C -->|Allowed| E[Latitude and longitude]
-    C -->|Denied or unavailable| F[Continue without browser location]
-    D --> G[City, region, and country]
-
-    B --> H[Client context]
-    E --> H
-    F --> H
-    G --> H
-
-    I[User submits query] --> J[POST /api/assistant]
-    H --> J
-    J --> K[Classify query into typed intent]
-    K --> L[Fulfill intent with context and external data]
-    L --> M[Return typed card JSON]
-    M --> N[Render matching card component]
+    X[Timezone · locale · browser location · IP location] -. startup context .-> Q
 ```
 
-Browser location requires user permission. Locale, timezone, and coarse IP
-location do not show a browser permission prompt. Every assistant request sends
-the latest available context.
+Browser location requires permission. Timezone, locale, and coarse IP location
+do not. Each request includes whatever context is available.
 
 ## Run
 

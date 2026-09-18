@@ -12,7 +12,8 @@ flowchart LR
     F --> C["Typed card"]
     C --> UI["Card component"]
 
-    X["Timezone, locale, browser location, IP location"] -.->|"startup context"| Q
+    X["Timezone, locale, browser location, IP location"]
+    X -.->|"startup context"| Q
 ```
 
 Browser location requires permission. Timezone, locale, and coarse IP location
@@ -36,19 +37,22 @@ Open `http://localhost:3000`.
 - `Show a calendar` renders the `custom_card` placeholder.
 - Any other query renders an info card.
 
-`POST /api/assistant` accepts `{ "query": "...", "context": { ... } }` and returns typed card data.
+`POST /api/assistant` accepts
+`{ "query": "...", "context": { ... } }` and returns typed card data.
 
 ## Add a new card
 
 1. Add card type in `lib/cards.ts`.
    - Add UI data shape, for example `SportsCard`.
-   - Add intent shape to `AssistantIntent`, for example `{ card_type: "sports"; team?: string }`.
+   - Add intent shape to `AssistantIntent`, for example
+     `{ card_type: "sports"; team?: string }`.
    - Add card to `AssistantCard` union.
 
 2. Add backend decision + fulfillment in `app/api/assistant/route.ts`.
    - `queryDecisionApi()` returns new intent.
    - `fulfillIntent()` maps intent + context to full card data.
-   - If data is missing, return best useful fallback data. Do not add clarification UI yet.
+   - If data is missing, return best useful fallback data. Do not add
+     clarification UI yet.
 
 3. Add frontend renderer in `app/page.tsx`.
    - Create `SportsCardView`.

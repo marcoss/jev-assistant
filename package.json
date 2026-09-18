@@ -5,7 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "check": "npm run check:types && npm run check:markdown && npm run check:mermaid",
+    "check:types": "tsc --noEmit",
+    "check:markdown": "markdownlint-cli2 README.md",
+    "check:mermaid": "node scripts/check-mermaid.mjs README.md",
+    "prepare": "husky"
   },
   "dependencies": {
     "next": "^16.3.5",
@@ -17,6 +22,10 @@
     "@types/node": "22.13.10",
     "@types/react": "19.0.10",
     "@types/react-dom": "19.0.4",
+    "husky": "^9.1.7",
+    "jsdom": "^30.0.1",
+    "markdownlint-cli2": "^0.23.2",
+    "mermaid": "^12.0.0",
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
     "typescript": "5.8.2"

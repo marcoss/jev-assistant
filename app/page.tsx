@@ -265,22 +265,43 @@ export default function Home() {
 
   return (
     <main className="grid min-h-dvh place-items-center px-5 py-12 max-sm:px-3.5 max-sm:py-8">
-      <section className="w-full max-w-2xl" aria-labelledby="page-title">
-        <div className="mb-8 text-center">
-          <div
-            className="mx-auto mb-5 size-10 rounded-full bg-primary shadow-[0_0_0_9px_var(--color-primary-soft)]"
-            aria-hidden="true"
-          />
-          <p className={eyebrowClass}>Generative UI</p>
-          <h1
-            id="page-title"
-            className="mb-2.5 text-[clamp(2rem,7vw,3.25rem)] font-bold leading-[1.05] tracking-[-0.045em]"
-          >
-            What can I help with?
+      <section className="w-full max-w-2xl" aria-labelledby="assistant-title">
+        <div className="mb-8 flex justify-center">
+          <h1 id="assistant-title" className="sr-only">
+            Assistant
           </h1>
-          <p className="text-muted-foreground">
-            Ask a question. Get a purpose-built card.
-          </p>
+          <svg
+            className="size-20 text-primary"
+            viewBox="0 0 96 96"
+            fill="none"
+            role="img"
+            aria-label="Assistant"
+          >
+            <path
+              d="M48 24V14m-7 0h14"
+              stroke="currentColor"
+              strokeWidth="5"
+              strokeLinecap="round"
+            />
+            <rect
+              x="14"
+              y="24"
+              width="68"
+              height="58"
+              rx="20"
+              fill="var(--color-primary-soft)"
+              stroke="currentColor"
+              strokeWidth="5"
+            />
+            <circle cx="36" cy="50" r="5" fill="currentColor" />
+            <circle cx="60" cy="50" r="5" fill="currentColor" />
+            <path
+              d="M35 66c4 4 8 6 13 6s9-2 13-6"
+              stroke="currentColor"
+              strokeWidth="5"
+              strokeLinecap="round"
+            />
+          </svg>
         </div>
 
         <div className="mb-6 empty:hidden" aria-live="polite">

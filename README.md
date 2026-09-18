@@ -2,7 +2,7 @@
 
 Minimal Next.js proof of concept for a typed generative UI.
 
-[View live demo](https://jev-ijmfigjrg-marcoss-projects-33f2b683.vercel.app/)
+[View live demo](https://jev-beta.vercel.app/)
 
 ## Request flow
 

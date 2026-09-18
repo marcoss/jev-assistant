@@ -37,10 +37,6 @@ TYPESAFE_API_KEY=your_key_here
 Open `http://localhost:3000`. When the key is present, the assistant route asks
 JEV to select a card type. Without the key, it uses the local mock classifier.
 
-For Vercel, add `TYPESAFE_API_KEY` under **Project Settings → Environment
-Variables**, select the required environments, and redeploy. Do not use a
-`NEXT_PUBLIC_` prefix because that would expose the key to browser code.
-
 ## Mock prompts
 
 - `What is the weather?` renders a weather card.

@@ -4,23 +4,6 @@ Minimal Next.js proof of concept for a typed generative UI.
 
 [View live demo](https://jev-beta.vercel.app/)
 
-## Request flow
-
-```mermaid
-flowchart LR
-    Q["Query + context"] --> API["POST /api/assistant"]
-    API --> I["Typed intent"]
-    I --> F["Fulfill with data APIs"]
-    F --> C["Typed card"]
-    C --> UI["Card component"]
-
-    X["Timezone, locale, browser location, IP location"]
-    X -.->|"startup context"| Q
-```
-
-Browser location requires permission. Timezone, locale, and coarse IP location
-do not. Each request includes whatever context is available.
-
 ## Run
 
 ```bash

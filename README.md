@@ -2,6 +2,8 @@
 
 Minimal Next.js proof of concept for a typed generative UI.
 
+[View live demo](https://jev-ijmfigjrg-marcoss-projects-33f2b683.vercel.app/)
+
 ## Request flow
 
 ```mermaid
@@ -26,7 +28,18 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Create `.env.local` and add your server-only TypeSafe JEV key:
+
+```bash
+TYPESAFE_API_KEY=your_key_here
+```
+
+Open `http://localhost:3000`. When the key is present, the assistant route asks
+JEV to select a card type. Without the key, it uses the local mock classifier.
+
+For Vercel, add `TYPESAFE_API_KEY` under **Project Settings → Environment
+Variables**, select the required environments, and redeploy. Do not use a
+`NEXT_PUBLIC_` prefix because that would expose the key to browser code.
 
 ## Mock prompts
 

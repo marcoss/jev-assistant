@@ -27,7 +27,7 @@ function formatLocation(context?: AssistantContext) {
   return "your area";
 }
 
-async function queryDecisionApi(query: string): Promise<AssistantIntent> {
+function mockDecision(query: string): AssistantIntent {
   const prompt = query.toLowerCase();
 
   if (prompt.includes("weather")) {
@@ -55,6 +55,76 @@ async function queryDecisionApi(query: string): Promise<AssistantIntent> {
     title: "Here is a concise answer",
     body: `You asked: “${query}” This card is generated from typed mock data returned by the API.`,
   };
+}
+
+type JevResponse = {
+  answers?: {
+    assistant_intent?: {
+      choice?: unknown;
+    };
+  };
+};
+
+async function queryDecisionApi(query: string): Promise<AssistantIntent> {
+  const apiKey = process.env.TYPESAFE_API_KEY;
+
+  if (!apiKey) return mockDecision(query);
+
+  const response = await fetch("https://api.typesafe.ai/v1/systemone", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "jev-latest",
+      state: { query },
+      questions: {
+        assistant_intent: {
+          type: "choice",
+          instructions:
+            "Choose the single card type that best answers the user's query.",
+          criteria: {
+            weather: "Weather, temperature, conditions, or forecast.",
+            time: "Current time, clock, or timezone.",
+            news: "News, headlines, or current events.",
+            checklist: "Plan, steps, checklist, or todo list.",
+            unsupported: "Chart, map, timer, calendar, or custom visual UI.",
+            info: "Any request that does not match another option.",
+          },
+        },
+      },
+    }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`JEV request failed with status ${response.status}.`);
+  }
+
+  const result = (await response.json()) as JevResponse;
+  const choice = result.answers?.assistant_intent?.choice;
+
+  switch (choice) {
+    case "weather":
+      return { card_type: "weather" };
+    case "time":
+      return { card_type: "time" };
+    case "news":
+      return { card_type: "news", topic: query };
+    case "checklist":
+      return { card_type: "checklist", topic: query };
+    case "unsupported":
+      return { card_type: "unsupported", requested_ui: query };
+    case "info":
+      return {
+        card_type: "info",
+        title: "Here is a concise answer",
+        body: `You asked: “${query}” JEV selected this card type.`,
+      };
+    default:
+      throw new Error("JEV returned an invalid assistant_intent choice.");
+  }
 }
 
 async function fulfillIntent(

@@ -6,13 +6,13 @@ Minimal Next.js proof of concept for a typed generative UI.
 
 ```mermaid
 flowchart LR
-    Q[Query + context] --> API[/api/assistant]
-    API --> I[Typed intent]
-    I --> F[Fulfill with data APIs]
-    F --> C[Typed card]
-    C --> UI[Card component]
+    Q["Query + context"] --> API["POST /api/assistant"]
+    API --> I["Typed intent"]
+    I --> F["Fulfill with data APIs"]
+    F --> C["Typed card"]
+    C --> UI["Card component"]
 
-    X[Timezone · locale · browser location · IP location] -. startup context .-> Q
+    X["Timezone, locale, browser location, IP location"] -.->|"startup context"| Q
 ```
 
 Browser location requires permission. Timezone, locale, and coarse IP location

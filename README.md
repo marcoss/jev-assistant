@@ -18,11 +18,16 @@ TYPESAFE_API_KEY=your_key_here
 ```
 
 Open `http://localhost:3000`. When the key is present, the assistant route asks
-JEV to select a card type. Without the key, it uses the local mock classifier.
+JEV to select a card type. For weather, it also selects and orders trusted
+current, daily forecast, and hourly chart components using live Open-Meteo
+data. Without the key, local rules choose the weather layout. Weather needs
+browser location access or a city from Vercel IP headers; no weather values are
+mocked.
 
 ## Mock prompts
 
-- `What is the weather?` renders a weather card.
+- `What is the weather?` renders live current weather and forecast.
+- `Show an hourly weather chart` renders a live temperature chart.
 - `What time is it?` renders a time card.
 - `Show me news headlines` renders a news card.
 - `Show me sports scores` renders a sports card.
@@ -32,6 +37,8 @@ JEV to select a card type. Without the key, it uses the local mock classifier.
 
 `POST /api/assistant` accepts
 `{ "query": "...", "context": { ... } }` and returns typed card data.
+Weather responses include an ordered `blocks` array with references to
+validated `data` sections. Other card types still use placeholder data.
 
 ## Add a new card
 

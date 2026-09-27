@@ -5,6 +5,9 @@ import type {
   AssistantIntent,
   AssistantRequest,
   AssistantResponse,
+  WeatherCard,
+  WeatherData,
+  WeatherSection,
 } from "@/lib/cards";
 
 function formatLocation(context?: AssistantContext) {
@@ -66,12 +69,156 @@ function mockDecision(query: string): AssistantIntent {
 }
 
 type JevResponse = {
-  answers?: {
-    assistant_intent?: {
-      choice?: unknown;
-    };
-  };
+  answers?: Record<string, { choice?: unknown }>;
 };
+
+async function askJev(state: Record<string, unknown>, questions: Record<string, unknown>): Promise<JevResponse> {
+  const response = await fetch("https://api.typesafe.ai/v1/systemone", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.TYPESAFE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ model: "jev-latest", state, questions }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`JEV request failed with status ${response.status}.`);
+  }
+  return (await response.json()) as JevResponse;
+}
+
+const weatherSections = ["current", "forecast", "trend"] as const;
+
+function isWeatherSection(value: unknown): value is WeatherSection {
+  return weatherSections.some((section) => section === value);
+}
+
+async function composeWeather(query: string, data: WeatherData): Promise<WeatherCard["blocks"]> {
+  let focus: WeatherSection;
+  let included: WeatherSection[];
+
+  if (!process.env.TYPESAFE_API_KEY) {
+    const prompt = query.toLowerCase();
+    focus = /graph|chart|trend|hour|later today/.test(prompt)
+      ? "trend"
+      : /forecast|tomorrow|week|days/.test(prompt)
+        ? "forecast"
+        : "current";
+    included = focus === "current" ? ["current", "forecast"] : [focus];
+  } else {
+    const result = await askJev(
+      { query, weather: data },
+      {
+        focus: {
+          type: "choice",
+          instructions: "Which weather section should appear first to answer the query? Choose only from available data.",
+          criteria: {
+            current: "Conditions and temperature right now.",
+            forecast: "Highs and lows over the next days.",
+            trend: "Temperature changes over the next hours; use for chart requests.",
+          },
+        },
+        ...Object.fromEntries(weatherSections.map((section) => [
+          `include_${section}`,
+          {
+            type: "choice",
+            instructions: `Should the ${section} section appear to answer the user's query? Include only useful sections.`,
+            criteria: { yes: "This section helps answer the query.", no: "This section does not help answer the query." },
+          },
+        ])),
+      },
+    );
+    const selected = result.answers?.focus?.choice;
+    if (!isWeatherSection(selected)) throw new Error("JEV returned an invalid weather focus.");
+    focus = selected;
+    included = weatherSections.filter((section) => {
+      const choice = result.answers?.[`include_${section}`]?.choice;
+      if (choice !== "yes" && choice !== "no") {
+        throw new Error(`JEV returned an invalid ${section} selection.`);
+      }
+      return choice === "yes";
+    });
+  }
+
+  // The selected focus is always visible. Never allow an unknown component or data key.
+  const ordered = [focus, ...weatherSections.filter((section) => section !== focus && included.includes(section))];
+  return ordered.map((section) => ({ component: section, data: section }));
+}
+
+function weatherCondition(code: number): string {
+  if (code === 0) return "Clear sky";
+  if (code <= 3) return "Partly cloudy";
+  if (code <= 48) return "Foggy";
+  if (code <= 67) return "Rainy";
+  if (code <= 77) return "Snowy";
+  if (code <= 82) return "Rain showers";
+  if (code <= 86) return "Snow showers";
+  if (code <= 99) return "Thunderstorms";
+  return "Weather conditions unavailable";
+}
+
+async function fetchWeather(context?: AssistantContext): Promise<{ location: string; data: WeatherData }> {
+  const place = context?.location ?? context?.ipLocation;
+  let latitude = place?.latitude;
+  let longitude = place?.longitude;
+  const location = formatLocation(context);
+
+  if (latitude === undefined || longitude === undefined) {
+    const name = place?.city ?? place?.zipCode;
+    if (!name) throw new Error("Location is required for weather.");
+    const geocode = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${new URLSearchParams({ name, count: "1", ...(place?.country ? { countryCode: place.country } : {}) })}`, { cache: "no-store" });
+    if (!geocode.ok) throw new Error("Weather location lookup failed.");
+    const results = (await geocode.json()) as { results?: Array<{ latitude: number; longitude: number }> };
+    latitude = results.results?.[0]?.latitude;
+    longitude = results.results?.[0]?.longitude;
+  }
+  if (typeof latitude !== "number" || typeof longitude !== "number" || !Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+    throw new Error("Weather location is unavailable.");
+  }
+
+  const params = new URLSearchParams({
+    latitude: String(latitude), longitude: String(longitude),
+    current: "temperature_2m,weather_code",
+    daily: "temperature_2m_max,temperature_2m_min",
+    hourly: "temperature_2m",
+    forecast_days: "4", timezone: "auto",
+  });
+  const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`, { cache: "no-store" });
+  if (!response.ok) throw new Error("Weather request failed.");
+  const result = (await response.json()) as {
+    current?: { time: string; temperature_2m: number; weather_code: number };
+    daily?: { time: string[]; temperature_2m_max: number[]; temperature_2m_min: number[] };
+    hourly?: { time: string[]; temperature_2m: number[] };
+  };
+  const current = result.current;
+  const daily = result.daily;
+  const hourly = result.hourly;
+  if (!current || !daily || !hourly || !Number.isFinite(current.temperature_2m) || !Number.isFinite(current.weather_code)) {
+    throw new Error("Weather data is incomplete.");
+  }
+  const forecast = daily.time?.map((time, index) => ({
+    day: time,
+    high: daily.temperature_2m_max?.[index],
+    low: daily.temperature_2m_min?.[index],
+  })).slice(0, 4);
+  const trend = hourly.time?.map((time, index) => ({
+    time,
+    temperature: hourly.temperature_2m?.[index],
+  })).filter((point) => point.time >= current.time.slice(0, 13)).slice(0, 12);
+  if (!forecast?.length || !trend?.length || forecast.some((day) => !Number.isFinite(day.high) || !Number.isFinite(day.low)) || trend.some((point) => !Number.isFinite(point.temperature))) {
+    throw new Error("Weather data is incomplete.");
+  }
+  return {
+    location,
+    data: {
+      current: { temperature: current.temperature_2m, condition: weatherCondition(current.weather_code) },
+      forecast,
+      trend,
+    },
+  };
+}
 
 const intentEmoji = {
   weather: "🌤️",
@@ -95,45 +242,21 @@ async function queryDecisionApi(query: string): Promise<AssistantIntent> {
     `[JEV] Sending intent request model=jev-latest queryLength=${query.length}`,
   );
 
-  const response = await fetch("https://api.typesafe.ai/v1/systemone", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "jev-latest",
-      state: { query },
-      questions: {
-        assistant_intent: {
-          type: "choice",
-          instructions:
-            "Choose the single card type that best answers the user's query.",
-          criteria: {
-            weather: "Weather, temperature, conditions, or forecast.",
-            time: "Current time, clock, or timezone.",
-            news: "News, headlines, or current events.",
-            sports: "Sports, scores, games, matches, teams, or leagues.",
-            checklist: "Plan, steps, checklist, or todo list.",
-            unsupported: "Chart, map, timer, calendar, or custom visual UI.",
-            info: "Any request that does not match another option.",
-          },
-        },
+  const result = await askJev({ query }, {
+    assistant_intent: {
+      type: "choice",
+      instructions: "Choose the single card type that best answers the user's query. Weather charts are weather, not unsupported.",
+      criteria: {
+        weather: "Weather, temperature, conditions, forecast, or weather chart.",
+        time: "Current time, clock, or timezone.",
+        news: "News, headlines, or current events.",
+        sports: "Sports, scores, games, matches, teams, or leagues.",
+        checklist: "Plan, steps, checklist, or todo list.",
+        unsupported: "Map, timer, calendar, or other custom visual UI.",
+        info: "Any request that does not match another option.",
       },
-    }),
-    cache: "no-store",
+    },
   });
-
-  console.info(
-    `[JEV] Response received status=${response.status} ok=${response.ok}`,
-  );
-
-  if (!response.ok) {
-    console.error(`[JEV] Request failed status=${response.status}`);
-    throw new Error(`JEV request failed with status ${response.status}.`);
-  }
-
-  const result = (await response.json()) as JevResponse;
   const choice = result.answers?.assistant_intent?.choice;
 
   console.info(`[JEV] Response JSON ${JSON.stringify(result)}`);
@@ -165,24 +288,15 @@ async function queryDecisionApi(query: string): Promise<AssistantIntent> {
 
 async function fulfillIntent(
   intent: AssistantIntent,
+  query: string,
   context?: AssistantContext,
 ): Promise<AssistantCard> {
   switch (intent.card_type) {
-    case "weather":
-      return {
-        type: "weather_card",
-        location: intent.zip_code
-          ? `ZIP ${intent.zip_code}`
-          : formatLocation(context),
-        temperature: 18,
-        unit: "C",
-        condition: "Placeholder weather. External API not hooked yet.",
-        forecast: [
-          { day: "Today", high: 19, low: 12 },
-          { day: "Tomorrow", high: 21, low: 13 },
-          { day: "Friday", high: 20, low: 12 },
-        ],
-      };
+    case "weather": {
+      const { location, data } = await fetchWeather(context);
+      const blocks = await composeWeather(query, data);
+      return { type: "weather_card", location, unit: "C", data, blocks };
+    }
     case "time": {
       const timezone = intent.timezone ?? context?.timezone ?? "UTC";
 
@@ -258,10 +372,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Query is required." }, { status: 400 });
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
   const intent = await queryDecisionApi(query);
-  const card = await fulfillIntent(intent, body.context);
+  const card = await fulfillIntent(intent, query, body.context);
 
   const response: AssistantResponse = {
     query,
@@ -270,6 +382,7 @@ export async function POST(request: Request) {
       intent,
       cardType: card.type,
       emoji: intentEmoji[intent.card_type],
+      ...(card.type === "weather_card" ? { weatherBlocks: card.blocks } : {}),
     },
   };
 

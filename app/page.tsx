@@ -13,6 +13,7 @@ import type {
   SportsCard,
   TimeCard,
   WeatherCard,
+  WeatherSection,
 } from "@/lib/cards";
 
 const suggestions = [
@@ -77,43 +78,67 @@ function InfoCardView({ card, emoji }: { card: InfoCard; emoji: string }) {
   );
 }
 
-function WeatherCardView({
-  card,
-  emoji,
-}: {
-  card: WeatherCard;
-  emoji: string;
-}) {
-  return (
-    <article className={cardClass}>
-      <div className="flex items-start justify-between gap-5 max-sm:block">
-        <div>
-          <CardEyebrow emoji={emoji} label="Weather" />
-          <h2 className="mb-2.5 text-2xl font-bold tracking-tight">
-            {card.location}
-          </h2>
-          <p className={bodyClass}>{card.condition}</p>
+function WeatherCardView({ card, emoji }: { card: WeatherCard; emoji: string }) {
+  const sections: Record<WeatherSection, React.ReactNode> = {
+    current: (
+      <section className={cardClass} key="current">
+        <CardEyebrow emoji={emoji} label="Current weather" />
+        <h3 className="text-5xl font-bold tracking-tight">
+          {Math.round(card.data.current.temperature)}°{card.unit}
+        </h3>
+        <p className={`${bodyClass} mt-2`}>{card.data.current.condition}</p>
+      </section>
+    ),
+    forecast: (
+      <section className={cardClass} key="forecast">
+        <CardEyebrow emoji={emoji} label="Daily forecast" />
+        <div className="grid grid-cols-4 gap-2 max-sm:grid-cols-2">
+          {card.data.forecast.map((day) => (
+            <div className="grid gap-1 text-sm text-muted-foreground" key={day.day}>
+              <span>{new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "UTC" }).format(new Date(`${day.day}T12:00:00Z`))}</span>
+              <strong className="text-base text-foreground">{Math.round(day.high)}°</strong>
+              <span>Low {Math.round(day.low)}°</span>
+            </div>
+          ))}
         </div>
-        <p className="m-0 text-5xl font-bold tracking-[-0.06em] max-sm:mt-4">
-          {card.temperature}°
-          <span className="text-base tracking-normal text-muted-foreground">
-            {card.unit}
-          </span>
-        </p>
+      </section>
+    ),
+    trend: (
+      <section className={cardClass} key="trend">
+        <CardEyebrow emoji={emoji} label="Hourly temperature" />
+        <WeatherTrend points={card.data.trend} />
+      </section>
+    ),
+  };
+
+  return (
+    <div className="grid gap-3">
+      <h2 className="px-2 text-xl font-bold">Weather for {card.location}</h2>
+      {card.blocks.map((block) => block.component === block.data ? sections[block.data] : null)}
+    </div>
+  );
+}
+
+function WeatherTrend({ points }: { points: WeatherCard["data"]["trend"] }) {
+  const temperatures = points.map((point) => point.temperature);
+  const min = Math.min(...temperatures);
+  const max = Math.max(...temperatures);
+  const range = Math.max(max - min, 1);
+  const line = points.map((point, index) =>
+    `${20 + (index * 560) / Math.max(points.length - 1, 1)},${115 - ((point.temperature - min) / range) * 90}`,
+  ).join(" ");
+
+  return (
+    <div>
+      <svg viewBox="0 0 600 140" className="w-full" role="img" aria-label={`Temperature rises to ${Math.round(max)} degrees and falls to ${Math.round(min)} degrees Celsius over the next 12 hours`}>
+        <polyline points={line} fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className="text-primary" />
+      </svg>
+      <div className="flex justify-between text-sm text-muted-foreground">
+        <span>{points[0].time.slice(11, 16)} · {Math.round(points[0].temperature)}°</span>
+        <span>{points[points.length - 1].time.slice(11, 16)} · {Math.round(points[points.length - 1].temperature)}°</span>
       </div>
-      <div className="mt-5 grid grid-cols-3 gap-2 border-t border-border pt-4">
-        {card.forecast.map((day) => (
-          <div
-            className="grid gap-1 text-sm text-muted-foreground"
-            key={day.day}
-          >
-            <span>{day.day}</span>
-            <strong className="text-base text-foreground">{day.high}°</strong>
-            <span>{day.low}°</span>
-          </div>
-        ))}
-      </div>
-    </article>
+      <ul className="sr-only">{points.map((point) => <li key={point.time}>{point.time}: {point.temperature} degrees Celsius</li>)}</ul>
+    </div>
   );
 }
 
@@ -298,7 +323,7 @@ export default function Home() {
       setCard(data.card);
       setDebug(data.debug);
     } catch {
-      setError("Could not generate a card. Try again.");
+      setError("Could not load this response. For weather, allow location access or use a network that provides your city.");
     } finally {
       setLoading(false);
     }

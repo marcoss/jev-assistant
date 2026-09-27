@@ -5,17 +5,20 @@ export type InfoCard = {
   body: string;
 };
 
+export type WeatherData = {
+  current: { temperature: number; condition: string };
+  forecast: Array<{ day: string; high: number; low: number }>;
+  trend: Array<{ time: string; temperature: number }>;
+};
+
+export type WeatherSection = keyof WeatherData;
+
 export type WeatherCard = {
   type: "weather_card";
   location: string;
-  temperature: number;
-  unit: "C" | "F";
-  condition: string;
-  forecast: Array<{
-    day: string;
-    high: number;
-    low: number;
-  }>;
+  unit: "C";
+  data: WeatherData;
+  blocks: Array<{ component: WeatherSection; data: WeatherSection }>;
 };
 
 export type TimeCard = {
@@ -104,5 +107,6 @@ export type AssistantResponse = {
     intent: AssistantIntent;
     cardType: AssistantCard["type"];
     emoji: string;
+    weatherBlocks?: WeatherCard["blocks"];
   };
 };

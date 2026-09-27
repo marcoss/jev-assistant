@@ -1,21 +1,19 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #f7f8f2;
-  --color-foreground: #25352e;
+  --color-background: #ffffff;
+  --color-foreground: #101010;
   --color-card: #ffffff;
-  --color-surface: #f1f4ee;
-  --color-muted-foreground: #667066;
-  --color-border: #dde3d8;
-  --color-primary: #315e47;
-  --color-primary-hover: #254a37;
-  --color-primary-soft: #e8efe3;
-  --color-danger: #a52d24;
+  --color-surface: #f5f5f5;
+  --color-muted-foreground: #686868;
+  --color-border: #e5e5e5;
+  --color-primary: #101010;
+  --color-primary-soft: #e2fbe9;
+  --color-accent: #00d64b;
+  --color-accent-hover: #00bf43;
+  --color-danger: #b42318;
 
-  --font-sans: "Avenir Next", Avenir, "Segoe UI", sans-serif;
-  --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
-  --shadow-card: 0 3px 12px rgb(37 53 46 / 3%);
-  --shadow-input: 0 8px 32px -12px rgb(37 53 46 / 16%), 0 1px 3px rgb(37 53 46 / 3%);
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
 
   --animate-card-in: card-in 240ms ease-out;
   --animate-thinking: thinking 900ms ease-in-out infinite;
@@ -60,10 +58,6 @@
     background: var(--color-primary-soft);
     color: var(--color-primary);
   }
-}
-
-@utility bg-current-weather {
-  background: radial-gradient(circle at 90% 20%, #f9edc9 0, transparent 45%), var(--color-card);
 }
 
 @media (prefers-reduced-motion: reduce) {

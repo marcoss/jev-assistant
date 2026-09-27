@@ -5,6 +5,7 @@ import type {
   AssistantIntent,
   AssistantRequest,
   AssistantResponse,
+  JevChoiceDebug,
   WeatherCard,
   WeatherData,
   WeatherSection,
@@ -68,9 +69,22 @@ function mockDecision(query: string): AssistantIntent {
   };
 }
 
-type JevResponse = {
-  answers?: Record<string, { choice?: unknown }>;
+type JevAnswer = {
+  choice?: unknown;
+  probabilities?: Record<string, number>;
+  confidence?: number;
 };
+
+type JevResponse = { answers?: Record<string, JevAnswer> };
+type JevDebug = NonNullable<AssistantResponse["debug"]["jev"]>;
+
+function debugAnswer(answer: JevAnswer): JevChoiceDebug {
+  return {
+    ...(typeof answer.choice === "string" ? { choice: answer.choice } : {}),
+    ...(answer.probabilities ? { probabilities: answer.probabilities } : {}),
+    ...(typeof answer.confidence === "number" ? { confidence: answer.confidence } : {}),
+  };
+}
 
 async function askJev(state: Record<string, unknown>, questions: Record<string, unknown>): Promise<JevResponse> {
   const response = await fetch("https://api.typesafe.ai/v1/systemone", {
@@ -95,17 +109,15 @@ function isWeatherSection(value: unknown): value is WeatherSection {
   return weatherSections.some((section) => section === value);
 }
 
-async function composeWeather(query: string, data: WeatherData): Promise<WeatherCard["blocks"]> {
+async function composeWeather(query: string, data: WeatherData, debug: JevDebug): Promise<WeatherCard["blocks"]> {
   let focus: WeatherSection;
   let included: WeatherSection[];
 
   if (!process.env.TYPESAFE_API_KEY) {
     const prompt = query.toLowerCase();
-    focus = /graph|chart|trend|hour|later today/.test(prompt)
-      ? "trend"
-      : /forecast|tomorrow|week|days/.test(prompt)
-        ? "forecast"
-        : "current";
+    focus = "current";
+    if (/graph|chart|trend|hour|later today/.test(prompt)) focus = "trend";
+    else if (/forecast|tomorrow|week|days/.test(prompt)) focus = "forecast";
     included = focus === "current" ? ["current", "forecast"] : [focus];
   } else {
     const result = await askJev(
@@ -129,6 +141,9 @@ async function composeWeather(query: string, data: WeatherData): Promise<Weather
           },
         ])),
       },
+    );
+    debug.weather = Object.fromEntries(
+      Object.entries(result.answers ?? {}).map(([key, answer]) => [key, debugAnswer(answer)]),
     );
     const selected = result.answers?.focus?.choice;
     if (!isWeatherSection(selected)) throw new Error("JEV returned an invalid weather focus.");
@@ -230,7 +245,7 @@ const intentEmoji = {
   unsupported: "🧩",
 } satisfies Record<AssistantIntent["card_type"], string>;
 
-async function queryDecisionApi(query: string): Promise<AssistantIntent> {
+async function queryDecisionApi(query: string, debug: JevDebug): Promise<AssistantIntent> {
   const apiKey = process.env.TYPESAFE_API_KEY;
 
   if (!apiKey) {
@@ -257,6 +272,9 @@ async function queryDecisionApi(query: string): Promise<AssistantIntent> {
       },
     },
   });
+  if (result.answers?.assistant_intent) {
+    debug.intent = debugAnswer(result.answers.assistant_intent);
+  }
   const choice = result.answers?.assistant_intent?.choice;
 
   console.info(`[JEV] Response JSON ${JSON.stringify(result)}`);
@@ -289,12 +307,13 @@ async function queryDecisionApi(query: string): Promise<AssistantIntent> {
 async function fulfillIntent(
   intent: AssistantIntent,
   query: string,
+  debug: JevDebug,
   context?: AssistantContext,
 ): Promise<AssistantCard> {
   switch (intent.card_type) {
     case "weather": {
       const { location, data } = await fetchWeather(context);
-      const blocks = await composeWeather(query, data);
+      const blocks = await composeWeather(query, data, debug);
       return { type: "weather_card", location, unit: "C", data, blocks };
     }
     case "time": {
@@ -372,8 +391,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Query is required." }, { status: 400 });
   }
 
-  const intent = await queryDecisionApi(query);
-  const card = await fulfillIntent(intent, query, body.context);
+  const jev: JevDebug = {};
+  const intent = await queryDecisionApi(query, jev);
+  const card = await fulfillIntent(intent, query, jev, body.context);
 
   const response: AssistantResponse = {
     query,
@@ -382,6 +402,7 @@ export async function POST(request: Request) {
       intent,
       cardType: card.type,
       emoji: intentEmoji[intent.card_type],
+      jev: process.env.TYPESAFE_API_KEY ? jev : null,
       ...(card.type === "weather_card" ? { weatherBlocks: card.blocks } : {}),
     },
   };

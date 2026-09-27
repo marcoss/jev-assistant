@@ -100,6 +100,12 @@ export type AssistantCard =
   | SportsCard
   | CustomCard;
 
+export type JevChoiceDebug = {
+  choice?: string;
+  probabilities?: Record<string, number>;
+  confidence?: number;
+};
+
 export type AssistantResponse = {
   query: string;
   card: AssistantCard;
@@ -108,5 +114,9 @@ export type AssistantResponse = {
     cardType: AssistantCard["type"];
     emoji: string;
     weatherBlocks?: WeatherCard["blocks"];
+    jev: {
+      intent?: JevChoiceDebug;
+      weather?: Record<string, JevChoiceDebug>;
+    } | null;
   };
 };

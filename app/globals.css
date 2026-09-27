@@ -1,18 +1,21 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #f5f5f2;
-  --color-foreground: #171714;
+  --color-background: #f7f8f2;
+  --color-foreground: #25352e;
   --color-card: #ffffff;
-  --color-muted-foreground: #6f6f68;
-  --color-border: #dfdfd8;
-  --color-primary: #4f46e5;
-  --color-primary-soft: #eeedff;
-  --color-danger: #b42318;
+  --color-surface: #f1f4ee;
+  --color-muted-foreground: #667066;
+  --color-border: #dde3d8;
+  --color-primary: #315e47;
+  --color-primary-hover: #254a37;
+  --color-primary-soft: #e8efe3;
+  --color-danger: #a52d24;
 
-  --font-sans: Arial, Helvetica, sans-serif;
-  --shadow-card: 0 18px 48px rgb(23 23 20 / 8%);
-  --shadow-input: 0 12px 36px rgb(23 23 20 / 7%);
+  --font-sans: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --shadow-card: 0 3px 12px rgb(37 53 46 / 3%);
+  --shadow-input: 0 8px 32px -12px rgb(37 53 46 / 16%), 0 1px 3px rgb(37 53 46 / 3%);
 
   --animate-card-in: card-in 240ms ease-out;
   --animate-thinking: thinking 900ms ease-in-out infinite;
@@ -45,6 +48,22 @@
   button {
     @apply cursor-pointer;
   }
+
+  button:focus-visible,
+  a:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 4px;
+  }
+
+  ::selection {
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+  }
+}
+
+@utility bg-current-weather {
+  background: radial-gradient(circle at 90% 20%, #f9edc9 0, transparent 45%), var(--color-card);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -53,6 +72,7 @@
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
 }

@@ -373,7 +373,7 @@ export default function Home() {
       setCard(data.card);
       setDebug(data.debug);
     } catch {
-      setError("We couldn't load your answer. Try again. For local weather, use the location button above if your area is not available.");
+      setError("We couldn't load your answer. Try again.");
     } finally {
       setLoading(false);
     }

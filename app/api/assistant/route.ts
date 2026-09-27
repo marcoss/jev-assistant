@@ -31,44 +31,6 @@ function formatLocation(context?: AssistantContext) {
   return "your area";
 }
 
-function mockDecision(query: string): AssistantIntent {
-  const prompt = query.toLowerCase();
-
-  if (prompt.includes("weather")) {
-    return { card_type: "weather" };
-  }
-
-  if (/time|clock/.test(prompt)) {
-    return { card_type: "time" };
-  }
-
-  if (/news|headline|headlines/.test(prompt)) {
-    return { card_type: "news", topic: query };
-  }
-
-  if (
-    /sports|score|game|match|nba|nfl|mlb|nhl|soccer|football|basketball|baseball|hockey/.test(
-      prompt,
-    )
-  ) {
-    return { card_type: "sports", topic: query };
-  }
-
-  if (/plan|steps|checklist|todo/.test(prompt)) {
-    return { card_type: "checklist", topic: query };
-  }
-
-  if (/chart|map|timer|calendar/.test(prompt)) {
-    return { card_type: "unsupported", requested_ui: query };
-  }
-
-  return {
-    card_type: "info",
-    title: "Here is a concise answer",
-    body: `You asked: “${query}” This card is generated from typed mock data returned by the API.`,
-  };
-}
-
 type JevAnswer = {
   choice?: unknown;
   probabilities?: Record<string, number>;
@@ -76,7 +38,7 @@ type JevAnswer = {
 };
 
 type JevResponse = { answers?: Record<string, JevAnswer> };
-type JevDebug = NonNullable<AssistantResponse["debug"]["jev"]>;
+type JevDebug = AssistantResponse["debug"]["jev"];
 
 function debugAnswer(answer: JevAnswer): JevChoiceDebug {
   return {
@@ -110,52 +72,41 @@ function isWeatherSection(value: unknown): value is WeatherSection {
 }
 
 async function composeWeather(query: string, data: WeatherData, debug: JevDebug): Promise<WeatherCard["blocks"]> {
-  let focus: WeatherSection;
-  let included: WeatherSection[];
-
-  if (!process.env.TYPESAFE_API_KEY) {
-    const prompt = query.toLowerCase();
-    focus = "current";
-    if (/graph|chart|trend|hour|later today/.test(prompt)) focus = "trend";
-    else if (/forecast|tomorrow|week|days/.test(prompt)) focus = "forecast";
-    included = focus === "current" ? ["current", "forecast"] : [focus];
-  } else {
-    const result = await askJev(
-      { query, weather: data },
-      {
-        focus: {
-          type: "choice",
-          instructions: "Which weather section should appear first to answer the query? Choose only from available data.",
-          criteria: {
-            current: "Conditions and temperature right now.",
-            forecast: "Highs and lows over the next days.",
-            trend: "Temperature changes over the next hours; use for chart requests.",
-          },
+  const result = await askJev(
+    { query, weather: data },
+    {
+      focus: {
+        type: "choice",
+        instructions: "Which weather section should appear first to answer the query? Choose only from available data.",
+        criteria: {
+          current: "Conditions and temperature right now.",
+          forecast: "Highs and lows over the next days.",
+          trend: "Temperature changes over the next hours; use for chart requests.",
         },
-        ...Object.fromEntries(weatherSections.map((section) => [
-          `include_${section}`,
-          {
-            type: "choice",
-            instructions: `Should the ${section} section appear to answer the user's query? Include only useful sections.`,
-            criteria: { yes: "This section helps answer the query.", no: "This section does not help answer the query." },
-          },
-        ])),
       },
-    );
-    debug.weather = Object.fromEntries(
-      Object.entries(result.answers ?? {}).map(([key, answer]) => [key, debugAnswer(answer)]),
-    );
-    const selected = result.answers?.focus?.choice;
-    if (!isWeatherSection(selected)) throw new Error("JEV returned an invalid weather focus.");
-    focus = selected;
-    included = weatherSections.filter((section) => {
-      const choice = result.answers?.[`include_${section}`]?.choice;
-      if (choice !== "yes" && choice !== "no") {
-        throw new Error(`JEV returned an invalid ${section} selection.`);
-      }
-      return choice === "yes";
-    });
-  }
+      ...Object.fromEntries(weatherSections.map((section) => [
+        `include_${section}`,
+        {
+          type: "choice",
+          instructions: `Should the ${section} section appear to answer the user's query? Include only useful sections.`,
+          criteria: { yes: "This section helps answer the query.", no: "This section does not help answer the query." },
+        },
+      ])),
+    },
+  );
+  debug.weather = Object.fromEntries(
+    Object.entries(result.answers ?? {}).map(([key, answer]) => [key, debugAnswer(answer)]),
+  );
+  const selected = result.answers?.focus?.choice;
+  if (!isWeatherSection(selected)) throw new Error("JEV returned an invalid weather focus.");
+  const focus = selected;
+  const included = weatherSections.filter((section) => {
+    const choice = result.answers?.[`include_${section}`]?.choice;
+    if (choice !== "yes" && choice !== "no") {
+      throw new Error(`JEV returned an invalid ${section} selection.`);
+    }
+    return choice === "yes";
+  });
 
   // The selected focus is always visible. Never allow an unknown component or data key.
   const ordered = [focus, ...weatherSections.filter((section) => section !== focus && included.includes(section))];
@@ -246,13 +197,6 @@ const intentEmoji = {
 } satisfies Record<AssistantIntent["card_type"], string>;
 
 async function queryDecisionApi(query: string, debug: JevDebug): Promise<AssistantIntent> {
-  const apiKey = process.env.TYPESAFE_API_KEY;
-
-  if (!apiKey) {
-    console.info("[JEV] API key missing; using mock classifier");
-    return mockDecision(query);
-  }
-
   console.info(
     `[JEV] Sending intent request model=jev-latest queryLength=${query.length}`,
   );
@@ -391,6 +335,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Query is required." }, { status: 400 });
   }
 
+  if (!process.env.TYPESAFE_API_KEY) {
+    return NextResponse.json({ error: "Service unavailable." }, { status: 503 });
+  }
+
   const jev: JevDebug = {};
   const intent = await queryDecisionApi(query, jev);
   const card = await fulfillIntent(intent, query, jev, body.context);
@@ -402,7 +350,7 @@ export async function POST(request: Request) {
       intent,
       cardType: card.type,
       emoji: intentEmoji[intent.card_type],
-      jev: process.env.TYPESAFE_API_KEY ? jev : null,
+      jev,
       ...(card.type === "weather_card" ? { weatherBlocks: card.blocks } : {}),
     },
   };

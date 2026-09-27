@@ -117,6 +117,6 @@ export type AssistantResponse = {
     jev: {
       intent?: JevChoiceDebug;
       weather?: Record<string, JevChoiceDebug>;
-    } | null;
+    };
   };
 };

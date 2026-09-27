@@ -17,9 +17,9 @@ import type {
 } from "@/lib/cards";
 
 const suggestions = [
-  "What is the weather?",
-  "What time is it?",
-  "Show me news headlines",
+  "What's the weather right now?",
+  "What's the weather forecast for the next few days?",
+  "Show me an hourly weather chart",
 ];
 const cardClass =
   "animate-card-in rounded-3xl border border-border bg-card p-7 shadow-card max-sm:p-5";

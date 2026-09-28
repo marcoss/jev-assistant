@@ -434,7 +434,7 @@ export default function Home() {
             className="min-w-0 flex-1 bg-transparent py-3 text-base font-medium text-foreground outline-none placeholder:text-muted-foreground sm:text-lg"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="What's on your mind?"
+            placeholder="What's the weather right now?"
             autoComplete="off"
             readOnly={loading}
           />

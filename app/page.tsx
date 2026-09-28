@@ -385,9 +385,14 @@ export default function Home() {
   return (
     <main className="grid min-h-dvh place-items-center px-5 py-16 sm:px-8">
       <section className="w-full max-w-2xl" aria-labelledby="assistant-title">
-        <h1 id="assistant-title" className={`mb-10 text-center font-black leading-none tracking-[-0.08em] ${hasResult ? "text-6xl" : "text-[clamp(5rem,16vw,8rem)]"}`}>
-          Ask<span className="text-accent">.</span>
-        </h1>
+        <h1 id="assistant-title" className="sr-only">Assistant</h1>
+        <svg className="mx-auto mb-8 size-16 text-foreground" viewBox="0 0 96 96" fill="none" aria-hidden="true">
+          <path d="M48 24V14m-7 0h14" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
+          <rect x="14" y="24" width="68" height="58" rx="20" stroke="currentColor" strokeWidth="5" />
+          <circle cx="36" cy="50" r="5" fill="currentColor" />
+          <circle cx="60" cy="50" r="5" fill="currentColor" />
+          <path d="M35 66c4 4 8 6 13 6s9-2 13-6" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
+        </svg>
 
         <p className="sr-only" role="status">{loading ? "Getting your answer…" : card ? "Your answer is ready." : ""}</p>
         {hasResult && (
